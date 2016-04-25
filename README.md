@@ -17,18 +17,18 @@ letsconsul
     |_
     | \_example.com
     |   |_
-    |     \_domains = ["www.example.com", "example.com"]
+    |     \_domain_list = ["www.example.com", "example.com"]
     |_
       \_qlean.ru
         |_
-          \_domains = ["qlean.ru", "www.qlean.ru", "assets.qlean.ru"]
+          \_domain_list = ["qlean.ru", "www.qlean.ru", "assets.qlean.ru"]
 ```
 
 When letsconsul starting it reading particular environment variables:
 
 - `BIND` - host:port variable that server will listen (e.g BIND=0.0.0.0:21234)
 - `RENEW_INTERVAL` - domain certificate expiration time (e.g. RENEW_INTERVAL=168h)
-- `RELOAD_INTERVAL` - time after letsconsul reloading domains configuration from consul (e.g. RELOAD_INTERVAL=10s)
+- `RELOAD_INTERVAL` - time after letsconsul reloading domains information from consul (e.g. RELOAD_INTERVAL=10s)
 - `CONSUL_PREFIX` - consul folder where domains serving (e.g. CONSUL_PREFIX=letsconsul/domains)
 - `CONSUL_SERVICE` - consul service name (e.g. CONSUL_SERVICE=letsconsul)
 

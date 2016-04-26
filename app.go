@@ -20,7 +20,6 @@ type(
 	App struct {
 		Bind            string        `env:"BIND"`
 		ConsulToken     string        `env:"CONSUL_TOKEN"`
-		ConsulPrefix    string        `env:"CONSUL_PREFIX"`
 		ConsulService   string        `env:"CONSUL_SERVICE"`
 		RenewInterval   time.Duration `env:"RENEW_INTERVAL"`
 		ReloadInterval  time.Duration `env:"RELOAD_INTERVAL"`
@@ -135,13 +134,12 @@ func (app *App) register() error {
 
 func (app *App) renewDomains() error {
 	letsconsul := &Letsconsul{}
+	letsconsul.Domains = make(map[string]*DomainRecord)
 
-	err := letsconsul.get(app.consulClient, app.ConsulPrefix)
+	err := letsconsul.get(app.consulClient, app.ConsulService)
 	if err != nil {
 		return err
 	}
-
-	log.Println(letsconsul)
 
 	err = letsconsul.renew(app.RenewInterval)
 	if err != nil {
@@ -166,6 +164,8 @@ func (app *App) start() error {
 			<- time.After(app.ReloadInterval)
 		}
 	}()
+
+	log.Println("Application loaded")
 
 	// http.HandleFunc("/", domainConfirmationHandler)
 

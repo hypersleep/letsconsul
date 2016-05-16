@@ -19,6 +19,8 @@ letsconsul
 |    |   |_
 |    |   | \_domain_list = ["www.example.com", "example.com"]
 |    |   |_
+|    |   | \_emain = admin@example.com
+|    |   |_
 |    |   | \_timestamp = 0
 |    |   |_
 |    |   | \_cert =
@@ -30,6 +32,8 @@ letsconsul
 |      \_qlean.ru
 |        |_
 |        | \_domain_list = ["qlean.ru", "www.qlean.ru", "assets.qlean.ru"]
+|        |_
+|        | \email = webmaster@qlean.ru
 |        |_
 |        | \_timestamp = 0
 |        |_

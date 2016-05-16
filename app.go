@@ -11,7 +11,6 @@ import(
 	"syscall"
 	"os/signal"
 
-	// "rsc.io/letsencrypt"
 	"github.com/satori/go.uuid"
 	consul "github.com/hashicorp/consul/api"
 )
@@ -25,6 +24,7 @@ type(
 		ReloadInterval  time.Duration `env:"RELOAD_INTERVAL"`
 		consulClient    *consul.Client
 		consulServiceID string
+		letsconsul      *Letsconsul
 	}
 )
 
@@ -133,15 +133,16 @@ func (app *App) register() error {
 }
 
 func (app *App) renewDomains() error {
-	letsconsul := &Letsconsul{}
-	letsconsul.Domains = make(map[string]*DomainRecord)
+	app.letsconsul.Domains = make(map[string]*DomainRecord)
 
-	err := letsconsul.get(app.consulClient, app.ConsulService)
+	err := app.letsconsul.get(app.consulClient, app.ConsulService)
 	if err != nil {
 		return err
 	}
 
-	err = letsconsul.renew(app.RenewInterval)
+	app.letsconsul.Bind = app.Bind
+
+	err = app.letsconsul.renew(app.consulClient, app.ConsulService, app.RenewInterval)
 	if err != nil {
 		return err
 	}
@@ -149,33 +150,25 @@ func (app *App) renewDomains() error {
 	return nil
 }
 
-// func domainConfirmationHandler (w http.ResponseWriter, r *http.Request) {
-// 	log.Fprintf(w, "Hello, TLS!\n")
-// }
-
 func (app *App) start() error {
+	var errChan chan error = make(chan error)
+
 	go func() {
+		app.letsconsul = &Letsconsul{}
+
 		for {
 			err := app.renewDomains()
 			if err != nil {
-				log.Println(err)
+				errChan <- err
+				return
 			}
 
 			<- time.After(app.ReloadInterval)
 		}
 	}()
 
+	log.Println("Binded to:", app.Bind)
 	log.Println("Application loaded")
 
-	// http.HandleFunc("/", domainConfirmationHandler)
-
-	// var m letsencrypt.Manager
-	// if err := m.CacheFile("letsencrypt.cache"); err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// return m.Serve()
-
-	<- time.After(2000 * time.Second)
-	return nil
+	return <- errChan
 }

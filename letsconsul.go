@@ -5,6 +5,8 @@ import(
 	"net"
 	"time"
 	"crypto"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/ecdsa"
 	"errors"
 	"strconv"
@@ -75,40 +77,44 @@ func (domainRecord *DomainRecord) write(client *consul.Client, consulService str
 func (domainRecord *DomainRecord) renew(bind string) error {
 	const letsEncryptURL = "https://acme-v01.api.letsencrypt.org/directory"
 
-	// create acme client
+	key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	if err != nil {
+		return err
+	}
+
+	domainRecord.key = key
 
 	client, err := acme.NewClient(letsEncryptURL, domainRecord, acme.EC256)
 	if err != nil {
 		return err
 	}
 
-	// try to register
-	// reg, err := client.Register()
-	// if err != nil {
-	// 	return err
-	// }
+	reg, err := client.Register()
+	if err != nil {
+		return err
+	}
 
-	// domainRecord.Reg = reg
+	domainRecord.Reg = reg
 
-	// // agree with TOS
-	// err = client.AgreeToTOS()
-	// if err != nil {
-	// 	return err
-	// }
+	err = client.AgreeToTOS()
+	if err != nil {
+		return err
+	}
 
 	host, port, err := net.SplitHostPort(bind)
 	if err != nil {
 		return err
 	}
 
+	client.ExcludeChallenges([]acme.Challenge{acme.TLSSNI01})
+	client.ExcludeChallenges([]acme.Challenge{acme.HTTP01})
+
 	httpProvider := acme.NewHTTPProviderServer(host, port)
 
-	err = client.SetChallengeProvider(acme.TLSSNI01, httpProvider)
+	err = client.SetChallengeProvider(acme.HTTP01, httpProvider)
 	if err != nil {
 		return err
 	}
-
-	client.ExcludeChallenges([]acme.Challenge{acme.TLSSNI01})
 
 	acmeCert, errmap := client.ObtainCertificate(domainRecord.Domains, true, nil)
 	if len(errmap) > 0 {

@@ -167,7 +167,6 @@ func (app *App) start() error {
 		}
 	}()
 
-	log.Println("Binded to:", app.Bind)
 	log.Println("Application loaded")
 
 	return <- errChan

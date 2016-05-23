@@ -19,7 +19,7 @@ letsconsul
 |    |   |_
 |    |   | \_domain_list = ["www.example.com", "example.com"]
 |    |   |_
-|    |   | \_emain = admin@example.com
+|    |   | \_email = admin@example.com
 |    |   |_
 |    |   | \_timestamp = 0
 |    |   |_

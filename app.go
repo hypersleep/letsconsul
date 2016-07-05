@@ -129,6 +129,8 @@ func (app *App) register() error {
 		}
 	}()
 
+	time.Sleep(5 * time.Second)
+
 	return nil
 }
 

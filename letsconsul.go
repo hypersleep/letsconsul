@@ -23,12 +23,11 @@ type(
 	}
 
 	DomainRecord struct {
-		Domains   []string  `consul:"domains"`
-		Email     string    `consul:"email"`
-		Timestamp time.Time `consul:"timestamp"`
-		Cert      string    `consul:"cert"`
-		Chain     string    `consul:"chain"`
-		Fullchain string    `consul:"fullchain"`
+		Domains    []string  `consul:"domains"`
+		Email      string    `consul:"email"`
+		Timestamp  time.Time `consul:"timestamp"`
+		PrivateKey string    `consul:"private_key"`
+		Fullchain  string    `consul:"fullchain"`
 		key   *ecdsa.PrivateKey
 		Reg   *acme.RegistrationResource
 	}
@@ -54,8 +53,8 @@ func (domainRecord *DomainRecord) write(client *consul.Client, consulService str
 	}
 
 	p = &consul.KVPair {
-		Key: consulService + "/domains/" + domainRecordName + "/cert",
-		Value: []byte(domainRecord.Cert),
+		Key: consulService + "/domains/" + domainRecordName + "/fullchain",
+		Value: []byte(domainRecord.Fullchain),
 	}
 	_, err = kv.Put(p, nil)
 	if err != nil {
@@ -63,8 +62,8 @@ func (domainRecord *DomainRecord) write(client *consul.Client, consulService str
 	}
 
 	p = &consul.KVPair {
-		Key: consulService + "/domains/" + domainRecordName + "/chain",
-		Value: []byte(domainRecord.Chain),
+		Key: consulService + "/domains/" + domainRecordName + "/private_key",
+		Value: []byte(domainRecord.PrivateKey),
 	}
 	_, err = kv.Put(p, nil)
 	if err != nil {
@@ -122,8 +121,8 @@ func (domainRecord *DomainRecord) renew(bind string) error {
 		return err
 	}
 
-	domainRecord.Cert = string(acmeCert.Certificate)
-	domainRecord.Chain = string(acmeCert.PrivateKey)
+	domainRecord.Fullchain = string(acmeCert.Certificate)
+	domainRecord.PrivateKey = string(acmeCert.PrivateKey)
 
 	domainRecord.Timestamp = time.Now()
 
@@ -189,28 +188,6 @@ func (domainRecord *DomainRecord) get(kv *consul.KV, prefix string, domainRecord
 	}
 
 	domainRecord.Timestamp = time.Unix(i, 0)
-
-	v, err = kvFetch(kv, prefix, domainRecordName, "cert")
-	if err != nil {
-		return err
-	}
-
-	domainRecord.Cert = string(v)
-
-	v, err = kvFetch(kv, prefix, domainRecordName, "chain")
-	if err != nil {
-		return err
-	}
-
-	domainRecord.Chain = string(v)
-
-	v, err = kvFetch(kv, prefix, domainRecordName, "fullchain")
-	if err != nil {
-		return err
-	}
-
-	domainRecord.Fullchain = string(v)
-
 
 	return nil
 }

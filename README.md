@@ -23,9 +23,7 @@ letsconsul
 |    |   |_
 |    |   | \_timestamp = 0
 |    |   |_
-|    |   | \_cert =
-|    |   |_
-|    |   | \_chain =
+|    |   | \_private_key =
 |    |   |_
 |    |     \_fullchain =
 |    |_
@@ -37,9 +35,7 @@ letsconsul
 |        |_
 |        | \_timestamp = 0
 |        |_
-|        | \_cert =
-|        |_
-|        | \_chain =
+|        | \_private_key =
 |        |_
 |          \_fullchain =
 |_
@@ -52,12 +48,13 @@ When letsconsul starting it reading particular environment variables:
 - `RENEW_INTERVAL` - domain certificate expiration time (e.g. RENEW_INTERVAL=168h)
 - `RELOAD_INTERVAL` - time after letsconsul reloading domains information from consul (e.g. RELOAD_INTERVAL=10s)
 - `CONSUL_SERVICE` - consul service name and  k/v folder where domains serving (e.g. CONSUL_SERVICE=letsconsul)
+- `CONSUL_TOKEN` - consul ACL token
 
 Example of usage:
 
 ```
 $ go build
-$ BIND=0.0.0.0:21234 RENEW_INTERVAL=168h RELOAD_INTERVAL=10s CONSUL_SERVICE=letsconsul letsencrypt
+$ BIND=0.0.0.0:21234 RENEW_INTERVAL=168h RELOAD_INTERVAL=10s CONSUL_SERVICE=letsconsul letsconsul
 ```
 
 After app starts, it fetching domains information from consul by given `CONSUL_SERVICE` env variable, checking certificate expiration time and if more than `RENEW_INTERVAL` then starts certificate renew process.

@@ -19,10 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("Loading application")
+	log.Println("Application loaded")
 
-	err = app.start()
-	if err != nil {
-		log.Fatal(err)
-	}
+	app.start()
 }

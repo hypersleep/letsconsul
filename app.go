@@ -5,7 +5,8 @@ import(
 	"log"
 	"net"
 	"time"
-	"reflect"
+	"flag"
+	"errors"
 	"net/http"
 	"strconv"
 	"syscall"
@@ -17,45 +18,74 @@ import(
 
 type(
 	App struct {
-		Bind            string        `env:"BIND"`
-		ConsulToken     string        `env:"CONSUL_TOKEN"`
-		ConsulService   string        `env:"CONSUL_SERVICE"`
-		RenewInterval   time.Duration `env:"RENEW_INTERVAL"`
-		ReloadInterval  time.Duration `env:"RELOAD_INTERVAL"`
+		Bind            string
+		ConsulToken     string
+		ConsulService   string        `consul:"service"`
+		RenewInterval   time.Duration `consul:"renew_interval"`
+		ReloadInterval  time.Duration `consul:"reload_interval"`
 		consulClient    *consul.Client
 		consulServiceID string
 		letsconsul      *Letsconsul
 	}
 )
 
-func (app *App) config() error {
-	structType := reflect.TypeOf(*app)
-	structValue := reflect.ValueOf(app).Elem()
+func (app *App) consulConfigure() error {
+	kv := app.consulClient.KV()
+	prefix := "letsconsul"
 
-	stringType := reflect.TypeOf(string(""))
-	durationType := reflect.TypeOf(time.Duration(0))
-
-	for i := 0; i < structType.NumField(); i++ {
-		field := structType.Field(i)
-		envKey := field.Tag.Get("env")
-		if envKey != "" {
-			envValue := os.Getenv(envKey)
-
-			switch field.Type {
-			case stringType:
-				structValue.FieldByName(field.Name).SetString(envValue)
-			case durationType:
-				duration, err := time.ParseDuration(envValue)
-				if err != nil {
-					return err
-				}
-				structValue.FieldByName(field.Name).Set(reflect.ValueOf(duration))
-			}
-		}
+	kvPair, _, err := kv.Get(prefix + "/service", nil)
+	if err != nil {
+		return err
 	}
 
+	if kvPair == nil {
+		return errors.New("Can't fetch 'service' key")
+	}
+
+	app.ConsulService = string(kvPair.Value)
+
+	kvPair, _, err = kv.Get(prefix + "/renew_interval", nil)
+	if err != nil {
+		return err
+	}
+
+	if kvPair == nil {
+		return errors.New("Can't fetch 'renew_interval' key")
+	}
+
+	app.RenewInterval, err = time.ParseDuration(string(kvPair.Value))
+	if err != nil {
+		return err
+	}
+
+	kvPair, _, err = kv.Get(prefix + "/reload_interval", nil)
+	if err != nil {
+		return err
+	}
+
+	if kvPair == nil {
+		return errors.New("Can't fetch 'reload_interval' key")
+	}
+
+	app.ReloadInterval, err = time.ParseDuration(string(kvPair.Value))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (app *App) config() error {
+	app.ConsulToken = os.Getenv("CONSUL_TOKEN")
+
+	bindPtr := flag.String("b", "0.0.0.0:8080", "host:port variable that validation web-server will listen")
+	consulAddrPtr := flag.String("c", "127.0.0.1:8500", "consul address")
+	flag.Parse()
+
+	app.Bind = *bindPtr
+
 	consulConfig := &consul.Config{
-		Address:    "127.0.0.1:8500",
+		Address:    *consulAddrPtr,
 		Token:      app.ConsulToken,
 		Scheme:     "http",
 		HttpClient: http.DefaultClient,
@@ -68,9 +98,20 @@ func (app *App) config() error {
 
 	app.consulClient = client
 
+	err = app.consulConfigure()
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for {
+			time.Sleep(10 * time.Second)
+			app.consulConfigure()
+		}
+	}()
+
 	return nil
 }
-
 
 func (app *App) register() error {
 	app.consulServiceID = uuid.NewV4().String()
@@ -137,14 +178,14 @@ func (app *App) register() error {
 func (app *App) renewDomains() error {
 	app.letsconsul.Domains = make(map[string]*DomainRecord)
 
-	err := app.letsconsul.get(app.consulClient, app.ConsulService)
+	err := app.letsconsul.get(app.consulClient)
 	if err != nil {
 		return err
 	}
 
 	app.letsconsul.Bind = app.Bind
 
-	err = app.letsconsul.renew(app.consulClient, app.ConsulService, app.RenewInterval)
+	err = app.letsconsul.renew(app.consulClient, app.RenewInterval)
 	if err != nil {
 		return err
 	}
@@ -152,24 +193,15 @@ func (app *App) renewDomains() error {
 	return nil
 }
 
-func (app *App) start() error {
-	var errChan chan error = make(chan error)
+func (app *App) start() {
+	app.letsconsul = &Letsconsul{}
 
-	go func() {
-		app.letsconsul = &Letsconsul{}
-
-		for {
-			err := app.renewDomains()
-			if err != nil {
-				errChan <- err
-				return
-			}
-
-			<- time.After(app.ReloadInterval)
+	for {
+		err := app.renewDomains()
+		if err != nil {
+			log.Println(err)
 		}
-	}()
 
-	log.Println("Application loaded")
-
-	return <- errChan
+		<- time.After(app.ReloadInterval)
+	}
 }

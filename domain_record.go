@@ -32,8 +32,9 @@ func (domainRecord *DomainRecord) GetEmail() string { return domainRecord.Email 
 func (domainRecord *DomainRecord) GetRegistration() *acme.RegistrationResource { return domainRecord.Reg }
 func (domainRecord *DomainRecord) GetPrivateKey() crypto.PrivateKey { return domainRecord.key }
 
-func (domainRecord *DomainRecord) write(client *consul.Client, consulService string, domainRecordName string) error {
+func (domainRecord *DomainRecord) write(client *consul.Client, domainRecordName string) error {
 	kv := client.KV()
+	consulService := "letsconsul"
 
 	timestamp := domainRecord.Timestamp.Unix()
 	timestampStr := strconv.Itoa(int(timestamp))

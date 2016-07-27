@@ -15,7 +15,7 @@ type(
 	}
 )
 
-func (letsconsul *Letsconsul) renew(client *consul.Client, consulService string, renewInterval time.Duration) error {
+func (letsconsul *Letsconsul) renew(client *consul.Client, renewInterval time.Duration) error {
 	for domainRecordName, domainRecord := range letsconsul.Domains {
 		if domainRecord.Timestamp.Add(renewInterval).Before(time.Now()) {
 			err := domainRecord.renew(letsconsul.Bind)
@@ -23,7 +23,7 @@ func (letsconsul *Letsconsul) renew(client *consul.Client, consulService string,
 				return err
 			}
 
-			err = domainRecord.write(client, consulService, domainRecordName)
+			err = domainRecord.write(client, domainRecordName)
 			if err != nil {
 				return err
 			}
@@ -32,8 +32,9 @@ func (letsconsul *Letsconsul) renew(client *consul.Client, consulService string,
 	return nil
 }
 
-func (letsconsul *Letsconsul) get(client *consul.Client, prefix string) error {
+func (letsconsul *Letsconsul) get(client *consul.Client) error {
 	kv := client.KV()
+	prefix := "letsconsul"
 
 	kvPair, _, err := kv.Get(prefix + "/domains_enabled", nil)
 	if err != nil {

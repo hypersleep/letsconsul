@@ -29,11 +29,7 @@ letsconsul
      |   |_
      |   | \_email = admin@example.com
      |   |_
-     |   | \_timestamp = 0
-     |   |_
-     |   | \_private_key =
-     |   |_
-     |     \_fullchain =
+     |     \_timestamp = 0
      |_
        \_qlean.ru
          |_
@@ -41,11 +37,7 @@ letsconsul
          |_
          | \email = webmaster@qlean.ru
          |_
-         | \_timestamp = 0
-         |_
-         | \_private_key =
-         |_
-           \_fullchain =
+           \_timestamp = 0
 ```
 
 Consul configuration keys:

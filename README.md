@@ -1,7 +1,5 @@
 # Letsconsul
 
-**STATUS:** *prototyping/experimental*
-
 Tool that helps you automatically renew LetsEncrypt certificates and serve them in consul K/V storage.
 
 *Note: It is tightly integrated with proxy-server (nginx in this case) and `consul-template` tool. Please read below for full understanding of certificate issuing and installation process.*
